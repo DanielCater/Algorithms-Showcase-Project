@@ -1,6 +1,6 @@
 # Comparing TSP Approximation Algorithms on Real Highway Network Data
 
-&**Overview:** The Traveling Salesman Problem (TSP) asks for the shortest route visiting a set of locations exactly once before returning to the starting point. 
+**Overview:** The Traveling Salesman Problem (TSP) asks for the shortest route visiting a set of locations exactly once before returning to the starting point. 
 Despite the simple formulation, TSP is one of the most challenging classes of problems, so it is one of the most studied problems in algorithm design. 
 This project will implement and compare multiple TSP algorithms, ranging from exact to approximation approaches, applied to real road network data from the METAL graph dataset.
 
