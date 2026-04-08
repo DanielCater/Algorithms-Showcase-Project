@@ -1,13 +1,42 @@
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Scanner;
+
 /**
- * A class to run experiments on the TSP solver. This class will read in a graph from a file,
- * run the TSP solver on it, and print out the results. It will also be used to compare the results
- * of different TSP algorithms.
+ * A class to run experiments on the TSP solver. This class will read in a graph
+ * from a file, run the TSP solver on it, and print out the results. It will
+ * also be used to compare the results of different TSP algorithms.
  *
  * @author Daniel Cater and Ryan Razzano
  * @version 4/7/2026
  */
 public class TSPExperiment {
+
     // TODO: Add methods to run experiments on the TSP solver here, such as reading in a graph from a file,
     // running the TSP solver on it, and printing out the results.
+    public static void main(String[] args) throws FileNotFoundException {
+        Scanner s = new Scanner(new File(args[0]));
+        HighwayGraph g = new HighwayGraph(s);
+        s.close();
+
+        int[] subset = g.getSubsetByHighway("US29");
+        System.out.println("Subset size: " + subset.length);
+
+        // build the distance matrix using all-pairs Dijkstra
+        g.buildDistanceMatrix(subset);
+
+        // now pass g.distMatrix into your TSP algorithms
+        TSPSolver solver = new TSPSolver(g.getDistMatrix());
+        int[] route = solver.nearestNeighbor(0);
+
+        for (int i = 0; i < route.length; i++) {
+            System.out.print(g.getVertexLabel(subset[route[i]]));
+            if (i < route.length - 1) {
+                System.out.print(" -> ");
+            }
+        }
+        System.out.println(" -> " + g.getVertexLabel(subset[route[0]]));
+        System.out.printf("Route length: %.2f miles%n", solver.routeLength(route));
+    }
 }

@@ -11,6 +11,7 @@
 import java.io.File;
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.util.PriorityQueue;
 import java.util.Scanner;
 
 public class HighwayGraph {
@@ -214,35 +215,134 @@ public class HighwayGraph {
 
     private double[][] distMatrix;
 
-    /**
-     * build a distance matrix for the graph, where distMatrix[i][j] is the
-     * length of the edge from vertex i to vertex j, or Double.MAX_VALUE if
-     * there is no edge.
-     */
-    public void buildDistanceMatrix() {
-        int n = vertices.length;
-        distMatrix = new double[n][n];
+    public double[][] getDistMatrix() {
+        return distMatrix;
+    }
 
-        // initialize with infinity (no direct edge)
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                distMatrix[i][j] = Double.MAX_VALUE;
-            }
+    public String getVertexLabel(int vertexIndex) {
+        return vertices[vertexIndex].label;
+    }
+
+    // helper class for Dijkstra's priority queue
+    private class Node implements Comparable<Node> {
+
+        int vertex;
+        double dist;
+
+        public Node(int vertex, double dist) {
+            this.vertex = vertex;
+            this.dist = dist;
         }
 
-        // fill in actual edge distances
-        for (int i = 0; i < n; i++) {
-            distMatrix[i][i] = 0;
-            Edge e = vertices[i].head;
+        public int compareTo(Node other) {
+            return Double.compare(this.dist, other.dist);
+        }
+    }
+
+    /**
+     * Run Dijkstra's from a single source vertex across the full graph. Returns
+     * an array of shortest distances from src to every vertex.
+     *
+     * @param src the index of the source vertex
+     * @return double[] where result[i] is the shortest distance from src to i
+     */
+    public double[] dijkstra(int src) {
+        double[] dist = new double[vertices.length];
+        boolean[] visited = new boolean[vertices.length];
+
+        // initialize all distances to infinity
+        for (int i = 0; i < dist.length; i++) {
+            dist[i] = Double.MAX_VALUE;
+        }
+        dist[src] = 0.0;
+
+        PriorityQueue<Node> pq = new PriorityQueue<>();
+        pq.add(new Node(src, 0.0));
+
+        while (!pq.isEmpty()) {
+            Node curr = pq.poll();
+            int u = curr.vertex;
+
+            if (visited[u]) {
+                continue;
+            }
+            visited[u] = true;
+
+            // traverse adjacency list
+            Edge e = vertices[u].head;
             while (e != null) {
-                distMatrix[i][e.dest] = e.length;
+                int v = e.dest;
+                double newDist = dist[u] + e.length;
+                if (newDist < dist[v]) {
+                    dist[v] = newDist;
+                    pq.add(new Node(v, newDist));
+                }
                 e = e.next;
+            }
+        }
+        return dist;
+    }
+
+    /**
+     * Build a distance matrix for a subset of vertices using all-pairs
+     * Dijkstra. distMatrix[i][j] gives the shortest road distance between
+     * subset[i] and subset[j].
+     *
+     * @param subset array of vertex indices to include
+     */
+    public void buildDistanceMatrix(int[] subset) {
+        int n = subset.length;
+        distMatrix = new double[n][n];
+
+        for (int i = 0; i < n; i++) {
+            // run Dijkstra from subset[i] across the whole graph
+            double[] fullDist = dijkstra(subset[i]);
+
+            // extract only the distances to other subset vertices
+            for (int j = 0; j < n; j++) {
+                distMatrix[i][j] = fullDist[subset[j]];
             }
         }
     }
 
-    // TODO: add methods to perform graph algorithms here, such as Dijkstra's all pairs shortest paths
-    // to fill in distance matrix
+    /**
+     * Helper method to get a subset of vertices that are on a particular
+     * highway.
+     *
+     * @param highway the name of the highway to filter by (e.g. "I-80")
+     * @return an array of vertex indices for vertices whose labels contain the
+     * given highway name
+     */
+    public int[] getSubsetByHighway(String highway) {
+        // first pass: count matches
+        int count = 0;
+        for (int i = 0; i < vertices.length; i++) {
+            if (vertices[i].label.contains(highway)) {
+                count++;
+            }
+        }
+
+        // second pass: fill array
+        int[] subset = new int[count];
+        int idx = 0;
+        for (int i = 0; i < vertices.length; i++) {
+            if (vertices[i].label.contains(highway)) {
+                subset[idx++] = i;
+            }
+        }
+        return subset;
+    }
+
+    // find a vertex whose label most closely matches a target
+    public int findVertex(String labelFragment) {
+        for (int i = 0; i < vertices.length; i++) {
+            if (vertices[i].label.contains(labelFragment)) {
+                return i;
+            }
+        }
+        return -1; // not found
+    }
+
     /**
      * toString method to print out the graph in a readable format. This is not
      * required, but is useful for debugging and understanding the graph
@@ -294,8 +394,7 @@ public class HighwayGraph {
         Vertex north = g.vertices[0], south = g.vertices[0], east = g.vertices[0], west = g.vertices[0];
         Vertex longest = g.vertices[0], shortest = g.vertices[0];
 
-        for (int check = 0; check < g.vertices.length; check++) {
-            Vertex v = g.vertices[check];
+        for (Vertex v : g.vertices) {
             if (v.point.lat > north.point.lat) {
                 north = v;
             }
