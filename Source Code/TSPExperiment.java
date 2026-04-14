@@ -16,12 +16,16 @@ public class TSPExperiment {
     // TODO: Add methods to run experiments on the TSP solver here, such as reading in a graph from a file,
     // running the TSP solver on it, and printing out the results.
     public static void main(String[] args) throws FileNotFoundException {
+        if (args.length < 1) {
+            System.out.println("Usage: java TSPExperiment <graph_file>");
+            return;
+        }
+
         Scanner s = new Scanner(new File(args[0]));
         HighwayGraph g = new HighwayGraph(s);
         s.close();
 
-        int[] subset = g.getSubsetByHighway("US29");
-        System.out.println("Subset size: " + subset.length);
+        int[] subset = g.getAllVertexIndices();
 
         // build the distance matrix using all-pairs Dijkstra
         g.buildDistanceMatrix(subset);
@@ -29,6 +33,7 @@ public class TSPExperiment {
         // now pass g.distMatrix into your TSP algorithms
         TSPSolver solver = new TSPSolver(g.getDistMatrix());
         int[] route = solver.nearestNeighbor(0);
+        int[] improvedRoute = solver.twoOpt(route);
 
         for (int i = 0; i < route.length; i++) {
             System.out.print(g.getVertexLabel(subset[route[i]]));
@@ -38,5 +43,14 @@ public class TSPExperiment {
         }
         System.out.println(" -> " + g.getVertexLabel(subset[route[0]]));
         System.out.printf("Route length: %.2f miles%n", solver.routeLength(route));
+
+        for (int i = 0; i < improvedRoute.length; i++) {
+            System.out.print(g.getVertexLabel(subset[improvedRoute[i]]));
+            if (i < improvedRoute.length - 1) {
+                System.out.print(" -> ");
+            }
+        }
+        System.out.println(" -> " + g.getVertexLabel(subset[improvedRoute[0]]));
+        System.out.printf("Improved route length: %.2f miles%n", solver.routeLength(improvedRoute));
     }
 }
