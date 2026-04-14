@@ -223,6 +223,14 @@ public class HighwayGraph {
         return vertices[vertexIndex].label;
     }
 
+    public int[] getAllVertexIndices() {
+        int[] all = new int[vertices.length];
+        for (int i = 0; i < all.length; i++) {
+            all[i] = i;
+        }
+        return all;
+    }
+
     // helper class for Dijkstra's priority queue
     private class Node implements Comparable<Node> {
 
