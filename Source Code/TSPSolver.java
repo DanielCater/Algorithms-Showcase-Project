@@ -63,11 +63,44 @@ public class TSPSolver {
                     bestNext = j;
                 }
             }
-
             route[step] = bestNext;
             visited[bestNext] = true;
         }
 
         return route;
     }
+
+    public int[] twoOpt(int[] route) {
+        int n = route.length;
+        boolean improved = true;
+
+        while (improved) {
+            improved = false;
+            for (int i = 0; i < n - 1; i++) {
+                for (int j = i + 2; j < n; j++) { // ensure we don't break the route
+                    double currentDist = distMatrix[route[i]][route[i + 1]] + distMatrix[route[j]][route[(j + 1) % n]];
+                    double newDist = distMatrix[route[i]][route[j]] + distMatrix[route[i + 1]][route[(j + 1) % n]];
+
+                    if (newDist < currentDist) {
+                        // Perform the 2-opt swap
+                        reverse(route, i + 1, j);
+                        improved = true;
+                    }
+                }
+            }
+        }
+
+        return route;
+    }
+
+    private void reverse(int[] route, int i, int j) {
+        while (i < j) {
+            int temp = route[i];
+            route[i] = route[j];
+            route[j] = temp;
+            i++;
+            j--;
+        }
+    }
+
 }
