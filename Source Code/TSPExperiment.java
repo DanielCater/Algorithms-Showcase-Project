@@ -28,12 +28,14 @@ public class TSPExperiment {
         int[] subset = g.getAllVertexIndices();
 
         // build the distance matrix using all-pairs Dijkstra
+        subset = g.getConnectedSubset(subset);
         g.buildDistanceMatrix(subset);
 
         // now pass g.distMatrix into your TSP algorithms
         TSPSolver solver = new TSPSolver(g.getDistMatrix());
         int[] route = solver.nearestNeighbor(0);
-        int[] improvedRoute = solver.twoOpt(route);
+        int[] improvedRoute = route.clone();
+        improvedRoute = solver.twoOpt(improvedRoute);
 
         for (int i = 0; i < route.length; i++) {
             System.out.print(g.getVertexLabel(subset[route[i]]));
