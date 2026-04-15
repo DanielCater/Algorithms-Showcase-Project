@@ -314,6 +314,39 @@ public class HighwayGraph {
     }
 
     /**
+     * Helper method to get a subset of vertices that are reachable from a given
+     * vertex. This is useful for filtering out disconnected vertices before
+     * running TSP algorithms, since disconnected vertices will just cause
+     * problems.
+     *
+     * @param subset an array of vertex indices to filter
+     * @return an array of vertex indices from the input subset that are
+     * reachable from the first vertex in the subset
+     */
+    public int[] getConnectedSubset(int[] subset) {
+        // run Dijkstra from the first vertex
+        double[] dist = dijkstra(subset[0]);
+
+        // count reachable vertices
+        int count = 0;
+        for (int i = 0; i < subset.length; i++) {
+            if (dist[subset[i]] < Double.MAX_VALUE) {
+                count++;
+            }
+        }
+
+        // build filtered subset
+        int[] connected = new int[count];
+        int idx = 0;
+        for (int i = 0; i < subset.length; i++) {
+            if (dist[subset[i]] < Double.MAX_VALUE) {
+                connected[idx++] = i;
+            }
+        }
+        return connected;
+    }
+
+    /**
      * Helper method to get a subset of vertices that are on a particular
      * highway.
      *
