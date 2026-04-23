@@ -64,34 +64,34 @@ public class TSPExperiment {
         int[] heldKarpRoute = solver.heldKarp(0);
         long elapsedTimeHeldKarp = System.currentTimeMillis() - startTime;
 
-        // for (int i = 0; i < route.length; i++) {
-        //     System.out.print(g.getVertexLabel(subset[route[i]]));
-        //     if (i < route.length - 1) {
-        //         System.out.print(" -> ");
-        //     }
-        // }
-        // System.out.println(" -> " + g.getVertexLabel(subset[route[0]]));
-        // System.out.printf("Route length: %.2f miles%n", solver.routeLength(route));
-        // System.out.printf("Nearest Neighbor time: %.6f seconds%n", elapsedTimeNearestNeighbor / 1000.0);
-        // for (int i = 0; i < improvedRoute.length; i++) {
-        //     System.out.print(g.getVertexLabel(subset[improvedRoute[i]]));
-        //     if (i < improvedRoute.length - 1) {
-        //         System.out.print(" -> ");
-        //     }
-        // }
-        // System.out.println(" -> " + g.getVertexLabel(subset[improvedRoute[0]]));
-        // System.out.printf("Improved route length: %.2f miles%n", solver.routeLength(improvedRoute));
-        // System.out.printf("2-opt time: %.6f seconds%n", elapsedTimeTwoOpt / 1000.0);
-        printPath(heldKarpRoute, subset, g);
+        for (int i = 0; i < route.length; i++) {
+            System.out.print(g.getVertexLabel(subset[route[i]]));
+            if (i < route.length - 1) {
+                System.out.print(" -> ");
+            }
+        }
 
-        // for (int i = 0; i < heldKarpRoute.length; i++) {
-        //     System.out.print(g.getVertexLabel(subset[heldKarpRoute[i]]));
-        //     if (i < heldKarpRoute.length - 1) {
-        //         System.out.print(" -> ");
-        //     }
-        // }
-        // System.out.println(" -> " + g.getVertexLabel(subset[heldKarpRoute[0]]));
-        // System.out.printf("Held-Karp route length: %.2f miles%n", solver.routeLength(heldKarpRoute));
-        // System.out.printf("Held-Karp time: %.2f seconds%n", elapsedTimeHeldKarp / 1000.0);
+        System.out.println(" -> " + g.getVertexLabel(subset[route[0]]));
+        System.out.printf("Route length: %.2f miles%n", solver.routeLength(route));
+        System.out.printf("Nearest Neighbor time: %.6f seconds%n", elapsedTimeNearestNeighbor / 1000.0);
+        for (int i = 0; i < improvedRoute.length; i++) {
+            System.out.print(g.getVertexLabel(subset[improvedRoute[i]]));
+            if (i < improvedRoute.length - 1) {
+                System.out.print(" -> ");
+            }
+        }
+        System.out.println(" -> " + g.getVertexLabel(subset[improvedRoute[0]]));
+        System.out.printf("Improved route length: %.2f miles%n", solver.routeLength(improvedRoute));
+        System.out.printf("2-opt time: %.6f seconds%n", elapsedTimeTwoOpt / 1000.0);
+
+        for (int i = 0; i < heldKarpRoute.length; i++) {
+            System.out.print(g.getVertexLabel(subset[heldKarpRoute[i]]));
+            if (i < heldKarpRoute.length - 1) {
+                System.out.print(" -> ");
+            }
+        }
+        System.out.println(" -> " + g.getVertexLabel(subset[heldKarpRoute[0]]));
+        System.out.printf("Held-Karp route length: %.2f miles%n", solver.routeLength(heldKarpRoute));
+        System.out.printf("Held-Karp time: %.2f seconds%n", elapsedTimeHeldKarp / 1000.0);
     }
 }
