@@ -9,3 +9,6 @@ points from the data containing certain labels as a start. The plan remains the 
 We completed an implementation of the 2-opt improvement, which will tak an existing route and swap edges if a more
 efficient path is available. We also added a method to HighwayGraph to create a set of all vertices for smaller graphs 
 where it can still run efficiently. Finally, we added a method that filters out vertices that are disconnected from the graph that still have Double.MAX_VALUE in the distance matrix. 
+
+## Progress as of 4/24/2026
+We completed the Held-Karp algorithm for getting the optimal routes. We also added methods to print results in the .pth format for visualization. We plan to add bash script to run to get full results, as well as adding 3-opt, as well as potentially another algorithm that utilizes 2-opt and 3-opt. We mainly need to gather results to prepare for the presentation. 
