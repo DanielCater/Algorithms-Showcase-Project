@@ -223,6 +223,20 @@ public class HighwayGraph {
         return vertices[vertexIndex].label;
     }
 
+    public String getEdgeLabel(int vertexIndex, int edgeIndex) {
+        Edge e = vertices[vertexIndex].head;
+        for (int i = 0; i < edgeIndex; i++) {
+            if (e == null) {
+                throw new IllegalArgumentException("Invalid edge index");
+            }
+            e = e.next;
+        }
+        if (e == null) {
+            throw new IllegalArgumentException("Invalid edge index");
+        }
+        return e.label;
+    }
+
     public int[] getAllVertexIndices() {
         int[] all = new int[vertices.length];
         for (int i = 0; i < all.length; i++) {
