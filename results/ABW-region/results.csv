@@ -1,0 +1,2 @@
+file,subset_size,nn_distance,nn_time_ms,twoopt_distance,twoopt_time_ms,heldkarp_distance,heldkarp_time_ms
+../HighwayData/ABW-region.tmg,20,41.362,0,38.326,0,38.326,749
