@@ -6,7 +6,7 @@
  * Adapted from the working with METAL data lab
  *
  * @author Daniel Cater and Ryan Razzano
- * @version 4/7/2026
+ * @version 4/23/2026
  */
 import java.io.File;
 import java.io.IOException;
@@ -213,24 +213,66 @@ public class HighwayGraph {
         }
     }
 
+    /**
+     * The distance matrix for the graph.
+     */
     private double[][] distMatrix;
 
+    /**
+     * Returns the distance matrix for the graph.
+     *
+     * @return the distance matrix
+     */
     public double[][] getDistMatrix() {
         return distMatrix;
     }
 
+    /**
+     * Helper methods to get vertex and edge labels and coordinates, which are
+     * useful for debugging and for building TSP solutions.
+     *
+     * @param vertexIndex the index of the vertex to get the label for
+     * @return the label of the vertex at the given index
+     */
     public String getVertexLabel(int vertexIndex) {
         return vertices[vertexIndex].label;
     }
 
+    /**
+     * Helper methods to get vertex coordinates, which are useful for debugging
+     * and for building TSP solutions.
+     *
+     * @param i the index of the vertex to get the coordinates for
+     * @return the latitude of the vertex at the given index
+     */
     public double getVertexLat(int i) {
         return vertices[i].point.lat;
     }
 
+    /**
+     * Helper methods to get vertex coordinates, which are useful for debugging
+     * and for building TSP solutions.
+     *
+     * @param i the index of the vertex to get the coordinates for
+     * @return the longitude of the vertex at the given index
+     */
     public double getVertexLng(int i) {
         return vertices[i].point.lng;
     }
 
+    /**
+     * Helper method to get the label of an edge between two vertices, which is
+     * useful for debugging and for building TSP solutions. Note that this
+     * method assumes that there is an edge between the given vertices, and will
+     * return "UNKNOWN" if there is not. In a well-formed TSP solution, we
+     * should only be calling this method for pairs of vertices that are
+     * actually connected by an edge.
+     *
+     * @param from the index of the source vertex
+     * @param to the index of the destination vertex
+     * @return the label of the edge from the source vertex to the destination
+     * vertex, or "UNKNOWN" if there is no such edge
+     */
     public String getEdgeLabel(int from, int to) {
         Edge e = vertices[from].head;
         while (e != null) {
@@ -242,6 +284,12 @@ public class HighwayGraph {
         return "UNKNOWN";
     }
 
+    /**
+     * Helper method to get an array of all vertex indices, which is useful for
+     * debugging and for building TSP solutions.
+     *
+     * @return an array of all vertex indices in the graph
+     */
     public int[] getAllVertexIndices() {
         int[] all = new int[vertices.length];
         for (int i = 0; i < all.length; i++) {
@@ -253,14 +301,28 @@ public class HighwayGraph {
     // helper class for Dijkstra's priority queue
     private class Node implements Comparable<Node> {
 
-        int vertex;
-        double dist;
+        int vertex;  // the vertex number of this node
+        double dist; // the current known distance from the source vertex to this vertex
 
+        /**
+         * construct a Node with the given vertex number and distance. This is
+         * used in Dijkstra's algorithm to keep track of the vertices to explore
+         * and their current known distances from the
+         *
+         * @param vertex the vertex number of this node
+         * @param dist the current known distance from the source vertex to this
+         * vertex, used for priority queue ordering in Dijkstra's algorithm
+         */
         public Node(int vertex, double dist) {
             this.vertex = vertex;
             this.dist = dist;
         }
 
+        /**
+         * compare this Node to another based on their distance values, for use
+         * in Dijkstra's priority queue. Nodes with smaller distance values are
+         * considered "less than" nodes with larger
+         */
         public int compareTo(Node other) {
             return Double.compare(this.dist, other.dist);
         }

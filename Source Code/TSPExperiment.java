@@ -13,6 +13,20 @@ import java.util.Scanner;
  */
 public class TSPExperiment {
 
+    /**
+     * Prints the route in the specified format. The first line uses "START" and
+     * the vertex label, followed by the latitude and longitude. Each subsequent
+     * line uses the edge label from the previous vertex to the current vertex,
+     * followed by the current vertex label and its latitude and longitude.
+     * Finally, it returns to the starting vertex with the appropriate edge
+     * label.
+     *
+     * @param route the array of vertex indices representing the route
+     * @param subset the subset of vertex indices used in the TSP solver, which
+     * maps the route indices to the actual vertex indices in the graph
+     * @param g the HighwayGraph object containing the vertex and edge
+     * information
+     */
     public static void printPath(int[] route, int[] subset, HighwayGraph g) {
         // first line uses START
         int firstVertex = subset[route[0]];
