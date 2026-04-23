@@ -1,6 +1,6 @@
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.Scanner;
 
 /**
@@ -9,7 +9,7 @@ import java.util.Scanner;
  * also be used to compare the results of different TSP algorithms.
  *
  * @author Daniel Cater and Ryan Razzano
- * @version 4/7/2026
+ * @version 4/23/2026
  */
 public class TSPExperiment {
 
@@ -27,10 +27,11 @@ public class TSPExperiment {
      * @param g the HighwayGraph object containing the vertex and edge
      * information
      */
-    public static void printPath(int[] route, int[] subset, HighwayGraph g) {
+    public static void printPath(int[] route, int[] subset, HighwayGraph g, String outFile) throws Exception {
+        PrintWriter out = new PrintWriter(new File(outFile));
         // first line uses START
         int firstVertex = subset[route[0]];
-        System.out.println("START " + g.getVertexLabel(firstVertex)
+        out.println("START " + g.getVertexLabel(firstVertex)
                 + " (" + g.getVertexLat(firstVertex) + "," + g.getVertexLng(firstVertex) + ")");
 
         // remaining lines use the edge label from previous to current
@@ -38,74 +39,118 @@ public class TSPExperiment {
             int prevVertex = subset[route[i - 1]];
             int currVertex = subset[route[i]];
             String edgeLabel = g.getEdgeLabel(prevVertex, currVertex);
-            System.out.println(edgeLabel + " " + g.getVertexLabel(currVertex)
+            out.println(edgeLabel + " " + g.getVertexLabel(currVertex)
                     + " (" + g.getVertexLat(currVertex) + "," + g.getVertexLng(currVertex) + ")");
         }
 
         // return to start
         int lastVertex = subset[route[route.length - 1]];
         String edgeLabel = g.getEdgeLabel(lastVertex, firstVertex);
-        System.out.println(edgeLabel + " " + g.getVertexLabel(firstVertex)
+        out.println(edgeLabel + " " + g.getVertexLabel(firstVertex)
                 + " (" + g.getVertexLat(firstVertex) + "," + g.getVertexLng(firstVertex) + ")");
+        out.close();
     }
 
-    public static void main(String[] args) throws FileNotFoundException {
-        if (args.length < 1) {
-            System.out.println("Usage: java TSPExperiment <graph_file>");
-            return;
+    public static void main(String[] args) throws Exception {
+        String tmgFile = args[0];
+        int maxSubset = 30;
+        int hkMax = 15;
+        String nnOut = null, twoOptOut = null, hkOut = null, csvOut = null;
+
+        // parse flags
+        for (int i = 1; i < args.length; i++) {
+            switch (args[i]) {
+                case "--max-subset":
+                    maxSubset = Integer.parseInt(args[++i]);
+                    break;
+                case "--hk-max":
+                    hkMax = Integer.parseInt(args[++i]);
+                    break;
+                case "--nn-out":
+                    nnOut = args[++i];
+                    break;
+                case "--twoopt-out":
+                    twoOptOut = args[++i];
+                    break;
+                case "--hk-out":
+                    hkOut = args[++i];
+                    break;
+                case "--csv-out":
+                    csvOut = args[++i];
+                    break;
+            }
         }
 
-        Scanner s = new Scanner(new File(args[0]));
+        Scanner s = new Scanner(new File(tmgFile));
         HighwayGraph g = new HighwayGraph(s);
         s.close();
 
-        int[] subset = g.getAllVertexIndices();
+        // try common highway labels in order until one gives a usable subset
+        String[] highwayLabels = {"US", "I-", "NY", "SR", "ST", "RT"};
+        int[] subset = new int[0];
 
-        // build the distance matrix using all-pairs Dijkstra
-        subset = g.getConnectedSubset(subset);
+        for (String label : highwayLabels) {
+            int[] candidate = g.getConnectedSubset(g.getSubsetByHighway(label, maxSubset));
+            if (candidate.length >= 4) {
+                subset = candidate;
+                break;
+            }
+        }
+
+        // last resort: just use the first maxSubset vertices
+        if (subset.length < 4) {
+            subset = new int[Math.min(maxSubset, g.getVertexCount())];
+            for (int i = 0; i < subset.length; i++) {
+                subset[i] = i;
+            }
+            subset = g.getConnectedSubset(subset);
+        }
+
         g.buildDistanceMatrix(subset);
-
-        // now pass g.distMatrix into your TSP algorithms
         TSPSolver solver = new TSPSolver(g.getDistMatrix());
-        long startTime = System.currentTimeMillis();
-        int[] route = solver.nearestNeighbor(0);
-        long elapsedTimeNearestNeighbor = System.currentTimeMillis() - startTime;
-        int[] improvedRoute = route.clone();
-        startTime = System.currentTimeMillis();
-        improvedRoute = solver.twoOpt(improvedRoute);
-        long elapsedTimeTwoOpt = System.currentTimeMillis() - startTime;
-        startTime = System.currentTimeMillis();
-        int[] heldKarpRoute = solver.heldKarp(0);
-        long elapsedTimeHeldKarp = System.currentTimeMillis() - startTime;
 
-        for (int i = 0; i < route.length; i++) {
-            System.out.print(g.getVertexLabel(subset[route[i]]));
-            if (i < route.length - 1) {
-                System.out.print(" -> ");
-            }
+        // run and time each algorithm
+        long t1 = System.currentTimeMillis();
+        int[] nnRoute = solver.nearestNeighbor(0);
+        long nnTime = System.currentTimeMillis() - t1;
+
+        long t2 = System.currentTimeMillis();
+        int[] twoOptRoute = solver.twoOpt(nnRoute.clone());
+        long twoOptTime = System.currentTimeMillis() - t2;
+
+        // trim subset further for Held-Karp if needed
+        int[] hkSubset = subset;
+        if (subset.length > hkMax) {
+            hkSubset = new int[hkMax];
+            System.arraycopy(subset, 0, hkSubset, 0, hkMax);
+            g.buildDistanceMatrix(hkSubset); // rebuild matrix for smaller subset
         }
 
-        System.out.println(" -> " + g.getVertexLabel(subset[route[0]]));
-        System.out.printf("Route length: %.2f miles%n", solver.routeLength(route));
-        System.out.printf("Nearest Neighbor time: %.6f seconds%n", elapsedTimeNearestNeighbor / 1000.0);
-        for (int i = 0; i < improvedRoute.length; i++) {
-            System.out.print(g.getVertexLabel(subset[improvedRoute[i]]));
-            if (i < improvedRoute.length - 1) {
-                System.out.print(" -> ");
-            }
-        }
-        System.out.println(" -> " + g.getVertexLabel(subset[improvedRoute[0]]));
-        System.out.printf("Improved route length: %.2f miles%n", solver.routeLength(improvedRoute));
-        System.out.printf("2-opt time: %.6f seconds%n", elapsedTimeTwoOpt / 1000.0);
+        long t3 = System.currentTimeMillis();
+        int[] hkRoute = solver.heldKarp(0);
+        long hkTime = System.currentTimeMillis() - t3;
 
-        for (int i = 0; i < heldKarpRoute.length; i++) {
-            System.out.print(g.getVertexLabel(subset[heldKarpRoute[i]]));
-            if (i < heldKarpRoute.length - 1) {
-                System.out.print(" -> ");
-            }
+        // write .pth files
+        if (nnOut != null) {
+            printPath(nnRoute, subset, g, nnOut);
         }
-        System.out.println(" -> " + g.getVertexLabel(subset[heldKarpRoute[0]]));
-        System.out.printf("Held-Karp route length: %.2f miles%n", solver.routeLength(heldKarpRoute));
-        System.out.printf("Held-Karp time: %.2f seconds%n", elapsedTimeHeldKarp / 1000.0);
+        if (twoOptOut != null) {
+            printPath(twoOptRoute, subset, g, twoOptOut);
+        }
+        if (hkOut != null && hkRoute != null) {
+            printPath(hkRoute, subset, g, hkOut);
+        }
+
+        // write CSV
+        if (csvOut != null) {
+            PrintWriter pw = new PrintWriter(csvOut);
+            pw.println("file,subset_size,nn_distance,nn_time_ms,twoopt_distance,twoopt_time_ms,heldkarp_distance,heldkarp_time_ms");
+            pw.printf("%s,%d,%.3f,%d,%.3f,%d,%.3f,%d%n",
+                    tmgFile, subset.length,
+                    solver.routeLength(nnRoute), nnTime,
+                    solver.routeLength(twoOptRoute), twoOptTime,
+                    hkRoute != null ? solver.routeLength(hkRoute) : -1, hkTime);
+            pw.close();
+        }
     }
 }
