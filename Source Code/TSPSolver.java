@@ -105,7 +105,7 @@ public class TSPSolver {
 
     public int[] heldKarp(int start) {
         int n = distMatrix.length;
-        int[][] dp = new int[1 << n][n];
+        double[][] dp = new double[1 << n][n];
         for (int i = 0; i < (1 << n); i++) {
             for (int j = 0; j < n; j++) {
                 dp[i][j] = Integer.MAX_VALUE / 2; // avoid overflow
@@ -118,18 +118,18 @@ public class TSPSolver {
                 if ((mask & (1 << u)) != 0) { // if u is in the subset
                     for (int v = 0; v < n; v++) {
                         if ((mask & (1 << v)) == 0) { // if v is not in the subset
-                            dp[mask | (1 << v)][v] = Math.min(dp[mask | (1 << v)][v], dp[mask][u] + (int) distMatrix[u][v]);
+                            dp[mask | (1 << v)][v] = Math.min(dp[mask | (1 << v)][v], dp[mask][u] + distMatrix[u][v]);
                         }
                     }
                 }
             }
         }
 
-        int minCost = Integer.MAX_VALUE;
+        double minCost = Double.MAX_VALUE;
         int lastCity = -1;
         for (int j = 0; j < n; j++) {
             if (j != start) {
-                int cost = dp[(1 << n) - 1][j] + (int) distMatrix[j][start];
+                double cost = dp[(1 << n) - 1][j] + distMatrix[j][start];
                 if (cost < minCost) {
                     minCost = cost;
                     lastCity = j;
@@ -139,26 +139,25 @@ public class TSPSolver {
 
         // Reconstruct the path
         int[] route = new int[n];
-        boolean[] visited = new boolean[n];
-        route[n - 1] = start;
-        visited[start] = true;
+        route[0] = start;
+        int mask = (1 << n) - 1;
+        int current = lastCity;
 
-        for (int i = n - 2, mask = (1 << n) - 1; i >= 0; i--) {
+        for (int i = n - 1; i >= 1; i--) {
             route[i] = lastCity;
-            visited[lastCity] = true;
             mask ^= (1 << lastCity);
 
             int nextCity = -1;
             for (int j = 0; j < n; j++) {
-                if (!visited[j]) {
-                    int cost = dp[mask][j] + (int) distMatrix[j][lastCity];
-                    if (cost == dp[mask | (1 << lastCity)][lastCity]) {
+                if ((mask & (1 << j)) != 0) {
+                    double cost = dp[mask][j] + distMatrix[j][current];
+                    if (Math.abs(cost - dp[mask | (1 << lastCity)][current]) < 0.0001) {
                         nextCity = j;
                         break;
                     }
                 }
             }
-            lastCity = nextCity;
+            current = nextCity;
         }
 
         return route;

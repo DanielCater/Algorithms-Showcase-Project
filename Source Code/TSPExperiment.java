@@ -52,7 +52,7 @@ public class TSPExperiment {
         }
         System.out.println(" -> " + g.getVertexLabel(subset[route[0]]));
         System.out.printf("Route length: %.2f miles%n", solver.routeLength(route));
-        System.out.printf("Nearest Neighbor time: %.2f seconds%n", elapsedTimeNearestNeighbor / 1000.0);
+        System.out.printf("Nearest Neighbor time: %.6f seconds%n", elapsedTimeNearestNeighbor / 1000.0);
 
         for (int i = 0; i < improvedRoute.length; i++) {
             System.out.print(g.getVertexLabel(subset[improvedRoute[i]]));
@@ -62,7 +62,7 @@ public class TSPExperiment {
         }
         System.out.println(" -> " + g.getVertexLabel(subset[improvedRoute[0]]));
         System.out.printf("Improved route length: %.2f miles%n", solver.routeLength(improvedRoute));
-        System.out.printf("2-opt time: %.2f seconds%n", elapsedTimeTwoOpt / 1000.0);
+        System.out.printf("2-opt time: %.6f seconds%n", elapsedTimeTwoOpt / 1000.0);
 
         for (int i = 0; i < heldKarpRoute.length; i++) {
             System.out.print(g.getVertexLabel(subset[heldKarpRoute[i]]));
