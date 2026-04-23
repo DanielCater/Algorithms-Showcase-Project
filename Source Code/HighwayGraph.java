@@ -8,8 +8,6 @@
  * @author Daniel Cater and Ryan Razzano
  * @version 4/23/2026
  */
-import java.io.File;
-import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.PriorityQueue;
 import java.util.Scanner;
@@ -378,6 +376,8 @@ public class HighwayGraph {
      * subset[i] and subset[j].
      *
      * @param subset array of vertex indices to include
+     * @param maxSubset the maximum number of vertices to include in the
+     * distance matrix
      */
     public void buildDistanceMatrix(int[] subset) {
         int n = subset.length;
@@ -405,6 +405,9 @@ public class HighwayGraph {
      * reachable from the first vertex in the subset
      */
     public int[] getConnectedSubset(int[] subset) {
+        if (subset.length == 0) {
+            return subset; // guard against empty input
+        }
         // run Dijkstra from the first vertex
         double[] dist = dijkstra(subset[0]);
 
@@ -421,10 +424,14 @@ public class HighwayGraph {
         int idx = 0;
         for (int i = 0; i < subset.length; i++) {
             if (dist[subset[i]] < Double.MAX_VALUE) {
-                connected[idx++] = i;
+                connected[idx++] = subset[i]; // fixed: was i, should be subset[i]
             }
         }
         return connected;
+    }
+
+    public int getVertexCount() {
+        return vertices.length;
     }
 
     /**
@@ -432,13 +439,18 @@ public class HighwayGraph {
      * highway.
      *
      * @param highway the name of the highway to filter by (e.g. "I-80")
+     * @param maxSubset the maximum number of vertices to include in the
+     * returned
      * @return an array of vertex indices for vertices whose labels contain the
      * given highway name
      */
-    public int[] getSubsetByHighway(String highway) {
+    public int[] getSubsetByHighway(String highway, int maxSubset) {
         // first pass: count matches
         int count = 0;
         for (int i = 0; i < vertices.length; i++) {
+            if (count >= maxSubset) {
+                break; // stop counting if we've reached the max subset size
+            }
             if (vertices[i].label.contains(highway)) {
                 count++;
             }
@@ -448,6 +460,9 @@ public class HighwayGraph {
         int[] subset = new int[count];
         int idx = 0;
         for (int i = 0; i < vertices.length; i++) {
+            if (idx >= count) {
+                break;
+            }
             if (vertices[i].label.contains(highway)) {
                 subset[idx++] = i;
             }
@@ -465,127 +480,4 @@ public class HighwayGraph {
         return -1; // not found
     }
 
-    /**
-     * toString method to print out the graph in a readable format. This is not
-     * required, but is useful for debugging and understanding the graph
-     * structure.
-     *
-     * @return a string representation of the graph
-     */
-    public String toString() {
-
-        StringBuilder s = new StringBuilder();
-        s.append("|V|=" + vertices.length + ", |E|=" + numEdges + "\n");
-        for (Vertex v : vertices) {
-            s.append(v.label + " " + v.point + "\n");
-            Edge e = v.head;
-            while (e != null) {
-                Vertex o = vertices[e.dest];
-                s.append("  to " + o.label + " " + o.point + " on " + e.label);
-                if (e.shapePoints != null) {
-                    s.append(" via");
-                    for (int pointNum = 0; pointNum < e.shapePoints.length; pointNum++) {
-                        s.append(" " + e.shapePoints[pointNum]);
-                    }
-                }
-                s.append(" length " + df.format(e.length) + "\n");
-                e = e.next;
-            }
-        }
-
-        return s.toString();
-    }
-
-    public static void main(String args[]) throws IOException {
-
-        if (args.length != 1) {
-            System.err.println("Usage: java HighwayGraph tmgfile");
-            System.exit(1);
-        }
-
-        // read in the file to construct the graph
-        Scanner s = new Scanner(new File(args[0]));
-        HighwayGraph g = new HighwayGraph(s);
-        s.close();
-
-        // print summary of the graph
-        System.out.println(g);
-
-        // ADD CODE HERE TO COMPLETE LAB TASKS
-        // Search for extreme vertices and longest/shortest labels
-        Vertex north = g.vertices[0], south = g.vertices[0], east = g.vertices[0], west = g.vertices[0];
-        Vertex longest = g.vertices[0], shortest = g.vertices[0];
-
-        for (Vertex v : g.vertices) {
-            if (v.point.lat > north.point.lat) {
-                north = v;
-            }
-            if (v.point.lat < south.point.lat) {
-                south = v;
-            }
-            if (v.point.lng > east.point.lng) {
-                east = v;
-            }
-            if (v.point.lng < west.point.lng) {
-                west = v;
-            }
-            if (v.label.length() > longest.label.length()) {
-                longest = v;
-            }
-            if (v.label.length() < shortest.label.length()) {
-                shortest = v;
-            }
-
-        }
-
-        System.out.println("Vertex extremes:");
-        System.out.println("North extreme: " + north.label);
-        System.out.println("South extreme: " + south.label);
-        System.out.println("East extreme: " + east.label);
-        System.out.println("West extreme: " + west.label);
-        System.out.println("Longest label: " + longest.label + " length: " + longest.label.length());
-        System.out.println("Shortest label: " + shortest.label + " length: " + shortest.label.length() + "\n");
-
-        // Search for extreme edges and longest/shortest labels
-        Edge longestEdge = null, shortestEdge = null, longestLabelEdge = null, shortestLabelEdge = null;
-        int count = 0;
-        double totalLength = 0.0;
-
-        for (int check = 0; check < g.vertices.length; check++) {
-            Vertex v = g.vertices[check];
-            Edge e = v.head;
-            while (e != null) {
-                // Skip edges we've already checked
-                if (e.dest < check) {
-                    e = e.next;
-                    continue;
-                }
-                totalLength += e.length;
-                count++;
-                if (longestEdge == null || e.length > longestEdge.length) {
-                    longestEdge = e;
-                }
-                if (shortestEdge == null || e.length < shortestEdge.length) {
-                    shortestEdge = e;
-                }
-                if (longestLabelEdge == null || e.label.length() > longestLabelEdge.label.length()) {
-                    longestLabelEdge = e;
-                }
-                if (shortestLabelEdge == null || e.label.length() < shortestLabelEdge.label.length()) {
-                    shortestLabelEdge = e;
-                }
-
-                e = e.next;
-            }
-        }
-
-        System.out.println("Edge extremes:");
-        System.out.println("Longest edge: " + longestEdge.label + " length: " + df.format(longestEdge.length));
-        System.out.println("Shortest edge: " + shortestEdge.label + " length: " + df.format(shortestEdge.length));
-        System.out.println("Longest label edge: " + longestLabelEdge.label + " length: " + longestLabelEdge.label.length());
-        System.out.println("Shortest label edge: " + shortestLabelEdge.label + " length: " + shortestLabelEdge.label.length());
-        System.out.println("Total number of edges: " + g.numEdges);
-        System.out.println("Number of edges considered: " + count);
-        System.out.println("Total length of edges: " + df.format(totalLength));
-    }
 }
