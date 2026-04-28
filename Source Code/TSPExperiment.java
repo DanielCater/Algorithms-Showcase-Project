@@ -1,6 +1,8 @@
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -21,34 +23,46 @@ public class TSPExperiment {
      * Finally, it returns to the starting vertex with the appropriate edge
      * label.
      *
-     * @param route the array of vertex indices representing the route
-     * @param subset the subset of vertex indices used in the TSP solver, which
-     * maps the route indices to the actual vertex indices in the graph
-     * @param g the HighwayGraph object containing the vertex and edge
-     * information
+     * @param route The order of vertices in the TSP route (indices into
+     * subset).
+     * @param subset The actual vertex indices in the graph corresponding to the
+     * route.
+     * @param g The highway graph containing vertex and edge information.
+     * @param filename The name of the output file to write the path to.
      */
-    public static void printPath(int[] route, int[] subset, HighwayGraph g, String outFile) throws Exception {
-        PrintWriter out = new PrintWriter(new File(outFile));
-        // first line uses START
-        int firstVertex = subset[route[0]];
-        out.println("START " + g.getVertexLabel(firstVertex)
-                + " (" + g.getVertexLat(firstVertex) + "," + g.getVertexLng(firstVertex) + ")");
+    public static void printPath(int[] route, int[] subset, HighwayGraph g, String filename) throws IOException {
+        PrintWriter pw = new PrintWriter(filename);
+        boolean first = true;
 
-        // remaining lines use the edge label from previous to current
-        for (int i = 1; i < route.length; i++) {
-            int prevVertex = subset[route[i - 1]];
-            int currVertex = subset[route[i]];
-            String edgeLabel = g.getEdgeLabel(prevVertex, currVertex);
-            out.println(edgeLabel + " " + g.getVertexLabel(currVertex)
-                    + " (" + g.getVertexLat(currVertex) + "," + g.getVertexLng(currVertex) + ")");
+        for (int i = 0; i < route.length; i++) {
+            int fromSubsetIdx = route[i];                           // index into subset
+            int toSubsetIdx = route[(i + 1) % route.length];        // index into subset
+
+            List<Integer> path = g.getPath(fromSubsetIdx, toSubsetIdx, subset);
+
+            for (int k = 0; k < path.size() - 1; k++) {
+                int v = path.get(k);
+                int vNext = path.get(k + 1);
+                String edgeLabel = g.getEdgeLabel(v, vNext);
+
+                if (first) {
+                    pw.println("START " + g.getVertexLabel(v)
+                            + " (" + g.getVertexLat(v) + "," + g.getVertexLng(v) + ")");
+                    first = false;
+                } else {
+                    pw.println(edgeLabel + " " + g.getVertexLabel(v)
+                            + " (" + g.getVertexLat(v) + "," + g.getVertexLng(v) + ")");
+                }
+            }
         }
 
-        // return to start
+        // close the loop back to start
         int lastVertex = subset[route[route.length - 1]];
-        String edgeLabel = g.getEdgeLabel(lastVertex, firstVertex);
-        out.println(edgeLabel + " " + g.getVertexLabel(firstVertex)
+        int firstVertex = subset[route[0]];
+        pw.println(g.getEdgeLabel(lastVertex, firstVertex) + " " + g.getVertexLabel(firstVertex)
                 + " (" + g.getVertexLat(firstVertex) + "," + g.getVertexLng(firstVertex) + ")");
-        out.close();
+
+        pw.close();
     }
 
     public static void main(String[] args) throws Exception {
@@ -106,51 +120,40 @@ public class TSPExperiment {
             subset = g.getConnectedSubset(subset);
         }
 
+        // run NN and 2-opt on full subset first
         g.buildDistanceMatrix(subset);
         TSPSolver solver = new TSPSolver(g.getDistMatrix());
 
-        long startTime = System.currentTimeMillis();
-        int[] route = solver.nearestNeighbor(0);
-        long elapsedTimeNearestNeighbor = System.currentTimeMillis() - startTime;
-
-        int[] improvedRoute = route.clone();
-        improvedRoute = solver.twoOpt(improvedRoute);
-        long elapsedTimeTwoOpt = System.currentTimeMillis() - startTime;
-        
-        startTime = System.currentTimeMillis();
-        int[] heldKarpRoute = solver.heldKarp(0);
-        long elapsedTimeHeldKarp = System.currentTimeMillis() - startTime;
-
-        // run and time each algorithm
         long t1 = System.currentTimeMillis();
         int[] nnRoute = solver.nearestNeighbor(0);
         long nnTime = System.currentTimeMillis() - t1;
 
-        long t2 = System.currentTimeMillis();
+        long t2 = t1;
         int[] twoOptRoute = solver.twoOpt(nnRoute.clone());
         long twoOptTime = System.currentTimeMillis() - t2;
 
-        // trim subset further for Held-Karp if needed
+// write NN and 2-opt paths BEFORE rebuilding for Held-Karp
+        printPath(nnRoute, subset, g, nnOut);
+        printPath(twoOptRoute, subset, g, twoOptOut);
+
+// now rebuild for Held-Karp with trimmed subset
         int[] hkSubset = subset;
+        int[] hkRoute = null;
+        long hkTime = -1;
+
         if (subset.length > hkMax) {
             hkSubset = new int[hkMax];
             System.arraycopy(subset, 0, hkSubset, 0, hkMax);
-            g.buildDistanceMatrix(hkSubset); // rebuild matrix for smaller subset
+            g.buildDistanceMatrix(hkSubset); // rebuilds predMatrix for hkSubset
         }
 
+        TSPSolver hkSolver = new TSPSolver(g.getDistMatrix());
         long t3 = System.currentTimeMillis();
-        int[] hkRoute = solver.heldKarp(0);
-        long hkTime = System.currentTimeMillis() - t3;
+        hkRoute = hkSolver.heldKarp(0);
+        hkTime = System.currentTimeMillis() - t3;
 
-        // write .pth files
-        if (nnOut != null) {
-            printPath(nnRoute, subset, g, nnOut);
-        }
-        if (twoOptOut != null) {
-            printPath(twoOptRoute, subset, g, twoOptOut);
-        }
-        if (hkOut != null && hkRoute != null) {
-            printPath(hkRoute, subset, g, hkOut);
+        if (hkRoute != null) {
+            printPath(hkRoute, hkSubset, g, hkOut);
         }
 
         // write CSV
