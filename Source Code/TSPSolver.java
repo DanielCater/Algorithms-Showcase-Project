@@ -4,7 +4,7 @@
  * heldKarp methods to solve the problem.
  *
  * @author Daniel Cater and Ryan Razzano
- * @version 4/7/2026
+ * @version 4/23/2026
  */
 public class TSPSolver {
 
@@ -103,6 +103,13 @@ public class TSPSolver {
         }
     }
 
+    /**
+     * Held-Karp algorithm for TSP. Uses dynamic programming to find the optimal
+     * route.
+     *
+     * @param start the index in the distance matrix to start from
+     * @return an array of indices representing the optimal route
+     */
     public int[] heldKarp(int start) {
         int n = distMatrix.length;
         double[][] dp = new double[1 << n][n];
@@ -144,14 +151,17 @@ public class TSPSolver {
         int current = lastCity;
 
         for (int i = n - 1; i >= 1; i--) {
-            route[i] = lastCity;
-            mask ^= (1 << lastCity);
+            route[i] = current;
+            mask ^= (1 << current);
 
             int nextCity = -1;
+            double targetCost = dp[mask | (1 << current)][current];
             for (int j = 0; j < n; j++) {
                 if ((mask & (1 << j)) != 0) {
                     double cost = dp[mask][j] + distMatrix[j][current];
-                    if (Math.abs(cost - dp[mask | (1 << lastCity)][current]) < 0.0001) {
+                    // use relative tolerance to handle large distances
+                    double tolerance = Math.max(1.0, Math.abs(targetCost)) * 1e-9;
+                    if (Math.abs(cost - targetCost) < tolerance) {
                         nextCity = j;
                         break;
                     }
@@ -159,7 +169,6 @@ public class TSPSolver {
             }
             current = nextCity;
         }
-
         return route;
     }
 

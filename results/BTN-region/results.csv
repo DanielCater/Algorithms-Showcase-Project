@@ -1,0 +1,2 @@
+file,subset_size,nn_distance,nn_time_ms,twoopt_distance,twoopt_time_ms,heldkarp_distance,heldkarp_time_ms
+../HighwayData/BTN-region.tmg,20,164.577,0,164.577,0,164.577,742
