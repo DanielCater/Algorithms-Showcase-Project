@@ -9,6 +9,9 @@
  * @version 4/23/2026
  */
 import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Scanner;
 
@@ -216,6 +219,8 @@ public class HighwayGraph {
      */
     private double[][] distMatrix;
 
+    private int[][] predMatrix; // predMatrix[i] = predecessor array from dijkstra run i
+
     /**
      * Returns the distance matrix for the graph.
      *
@@ -371,27 +376,111 @@ public class HighwayGraph {
     }
 
     /**
+     * Run Dijkstra's from a single source vertex across the full graph, and
+     * return the predecessor array that allows us to reconstruct shortest
+     * paths. pred[i] gives the vertex number of the vertex immediately
+     * preceding vertex i on the shortest path from src to i, or -1 if there is
+     * no such path (or if i == src).
+     *
+     * @param src the index of the source vertex
+     * @return int[] where result[i] is the vertex number of the vertex
+     * immediately preceding vertex i on the shortest path from src to i, or -1
+     * if there
+     */
+    public int[] dijkstraPred(int src) {
+        double[] dist = new double[vertices.length];
+        boolean[] visited = new boolean[vertices.length];
+        int[] pred = new int[vertices.length]; // predecessor array
+
+        for (int i = 0; i < dist.length; i++) {
+            dist[i] = Double.MAX_VALUE;
+            pred[i] = -1; // no predecessor yet
+        }
+        dist[src] = 0.0;
+
+        PriorityQueue<Node> pq = new PriorityQueue<>();
+        pq.add(new Node(src, 0.0));
+
+        while (!pq.isEmpty()) {
+            Node curr = pq.poll();
+            int u = curr.vertex;
+
+            if (visited[u]) {
+                continue;
+            }
+            visited[u] = true;
+
+            Edge e = vertices[u].head;
+            while (e != null) {
+                int v = e.dest;
+                double newDist = dist[u] + e.length;
+                if (newDist < dist[v]) {
+                    dist[v] = newDist;
+                    pred[v] = u; // track how we got here
+                    pq.add(new Node(v, newDist));
+                }
+                e = e.next;
+            }
+        }
+        return pred;
+    }
+
+    /**
      * Build a distance matrix for a subset of vertices using all-pairs
      * Dijkstra. distMatrix[i][j] gives the shortest road distance between
      * subset[i] and subset[j].
      *
      * @param subset array of vertex indices to include
-     * @param maxSubset the maximum number of vertices to include in the
-     * distance matrix
+     *
      */
     public void buildDistanceMatrix(int[] subset) {
         int n = subset.length;
         distMatrix = new double[n][n];
+        predMatrix = new int[n][];
 
         for (int i = 0; i < n; i++) {
-            // run Dijkstra from subset[i] across the whole graph
             double[] fullDist = dijkstra(subset[i]);
+            int[] pred = dijkstraPred(subset[i]);
+            predMatrix[i] = pred;
 
-            // extract only the distances to other subset vertices
             for (int j = 0; j < n; j++) {
                 distMatrix[i][j] = fullDist[subset[j]];
             }
         }
+    }
+
+    /**
+     * Helper method to reconstruct the path of vertex indices in the full graph
+     * between two vertices in the subset, using the predecessor array from the
+     * appropriate Dijkstra run. This is used to reconstruct the actual path of
+     * vertices in the full graph for each edge in the TSP route, so that we can
+     * print out the correct edge labels and vertex coordinates for the final
+     * output.
+     *
+     * @param subsetFrom the index of the source vertex in the subset (i.e. the
+     * row of the predMatrix to use)
+     * @param subsetTo the index of the destination vertex in the subset (used
+     * to get the full graph index of the destination vertex from the subset
+     * array)
+     * @param subset the array of vertex indices in the subset, used to get the
+     * full graph index of the destination vertex from the subsetTo index
+     * @return a List of vertex indices in the full graph representing the path
+     * from subset[subsetFrom] to subset[subsetTo] along the shortest path,
+     * including both endpoints
+     */
+    public List<Integer> getPath(int subsetFrom, int subsetTo, int[] subset) {
+        int[] pred = predMatrix[subsetFrom];  // row for this source
+        int target = subset[subsetTo];        // full graph index of destination
+
+        List<Integer> path = new ArrayList<>();
+        int current = target;
+        while (current != -1) {
+            path.add(current);
+            current = pred[current];
+        }
+
+        Collections.reverse(path);
+        return path;
     }
 
     /**
