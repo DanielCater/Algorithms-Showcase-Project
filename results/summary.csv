@@ -1,7 +1,7 @@
 file,subset_size,nn_distance,nn_time_ms,twoopt_distance,twoopt_time_ms,heldkarp_distance,heldkarp_time_ms
-../HighwayData/ABW-region.tmg,20,41.362,0,38.326,0,38.326,749
-../HighwayData/AGO-region.tmg,20,5124.453,0,4959.958,0,4959.958,822
-../HighwayData/BRA-AP-region.tmg,20,868.445,0,862.083,0,862.083,762
-../HighwayData/BTN-region.tmg,20,164.577,0,164.577,0,164.577,742
-../HighwayData/NY-region.tmg,20,78.840,0,77.055,0,77.055,786
-../HighwayData/amsterdam5-area.tmg,19,52.625,0,49.292,0,49.292,329
+../HighwayData/ABW-region.tmg,20,41.362,0,38.326,0,38.213,27
+../HighwayData/AGO-region.tmg,20,5124.453,0,4959.958,0,4959.958,33
+../HighwayData/BRA-AP-region.tmg,20,868.445,0,862.083,0,664.840,30
+../HighwayData/BTN-region.tmg,20,164.577,0,164.577,0,164.577,30
+../HighwayData/NY-region.tmg,20,78.840,0,77.055,0,51.159,59
+../HighwayData/amsterdam5-area.tmg,19,52.625,0,49.292,0,49.041,33
