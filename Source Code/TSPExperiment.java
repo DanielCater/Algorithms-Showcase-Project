@@ -67,13 +67,15 @@ public class TSPExperiment {
 
         // now pass g.distMatrix into your TSP algorithms
         TSPSolver solver = new TSPSolver(g.getDistMatrix());
+
         long startTime = System.currentTimeMillis();
         int[] route = solver.nearestNeighbor(0);
         long elapsedTimeNearestNeighbor = System.currentTimeMillis() - startTime;
+
         int[] improvedRoute = route.clone();
-        startTime = System.currentTimeMillis();
         improvedRoute = solver.twoOpt(improvedRoute);
         long elapsedTimeTwoOpt = System.currentTimeMillis() - startTime;
+        
         startTime = System.currentTimeMillis();
         int[] heldKarpRoute = solver.heldKarp(0);
         long elapsedTimeHeldKarp = System.currentTimeMillis() - startTime;
