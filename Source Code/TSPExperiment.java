@@ -108,7 +108,6 @@ public class TSPExperiment {
 
         g.buildDistanceMatrix(subset);
         TSPSolver solver = new TSPSolver(g.getDistMatrix());
-<<<<<<< HEAD
 
         long startTime = System.currentTimeMillis();
         int[] route = solver.nearestNeighbor(0);
@@ -121,8 +120,6 @@ public class TSPExperiment {
         startTime = System.currentTimeMillis();
         int[] heldKarpRoute = solver.heldKarp(0);
         long elapsedTimeHeldKarp = System.currentTimeMillis() - startTime;
-=======
->>>>>>> 05990b9ba402af792b74eefb224f2775cad8f60d
 
         // run and time each algorithm
         long t1 = System.currentTimeMillis();
