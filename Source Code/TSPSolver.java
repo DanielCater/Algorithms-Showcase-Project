@@ -4,7 +4,7 @@
  * heldKarp methods to solve the problem.
  *
  * @author Daniel Cater and Ryan Razzano
- * @version 4/23/2026
+ * @version 4/29/2026
  */
 public class TSPSolver {
 
@@ -46,6 +46,9 @@ public class TSPSolver {
      */
     public int[] nearestNeighbor(int start) {
         int n = distMatrix.length;
+        if (n == 0) {
+            return new int[0];
+        }
         boolean[] visited = new boolean[n];
         int[] route = new int[n];
 
