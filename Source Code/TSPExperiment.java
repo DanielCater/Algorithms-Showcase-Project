@@ -1,5 +1,6 @@
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
@@ -11,7 +12,7 @@ import java.util.Scanner;
  * also be used to compare the results of different TSP algorithms.
  *
  * @author Daniel Cater and Ryan Razzano
- * @version 4/23/2026
+ * @version 4/29/2026
  */
 public class TSPExperiment {
 
@@ -33,6 +34,7 @@ public class TSPExperiment {
     public static void printPath(int[] route, int[] subset, HighwayGraph g, String filename) throws IOException {
         PrintWriter pw = new PrintWriter(filename);
         boolean first = true;
+        String edgeLabel = "";
 
         for (int i = 0; i < route.length; i++) {
             int fromSubsetIdx = route[i];                           // index into subset
@@ -43,7 +45,7 @@ public class TSPExperiment {
             for (int k = 0; k < path.size() - 1; k++) {
                 int v = path.get(k);
                 int vNext = path.get(k + 1);
-                String edgeLabel = g.getEdgeLabel(v, vNext);
+                edgeLabel = g.getEdgeLabel(v, vNext);
 
                 if (first) {
                     pw.println("START " + g.getVertexLabel(v)
@@ -56,10 +58,20 @@ public class TSPExperiment {
             }
         }
 
-        // close the loop back to start
-        int lastVertex = subset[route[route.length - 1]];
-        int firstVertex = subset[route[0]];
-        pw.println(g.getEdgeLabel(lastVertex, firstVertex) + " " + g.getVertexLabel(firstVertex)
+        // close the loop back to start using full path
+        int lastRouteIdx = route[route.length - 1];
+        int firstRouteIdx = route[0];
+        List<Integer> closingPath = g.getPath(lastRouteIdx, firstRouteIdx, subset);
+
+        for (int k = 0; k < closingPath.size() - 1; k++) {
+            int v = closingPath.get(k);
+            pw.println(edgeLabel + " " + g.getVertexLabel(v)
+                    + " (" + g.getVertexLat(v) + "," + g.getVertexLng(v) + ")");
+        }
+
+        // write the final vertex (start point)
+        int firstVertex = subset[firstRouteIdx];
+        pw.println(edgeLabel + " " + g.getVertexLabel(firstVertex)
                 + " (" + g.getVertexLat(firstVertex) + "," + g.getVertexLng(firstVertex) + ")");
 
         pw.close();
@@ -103,24 +115,33 @@ public class TSPExperiment {
         String[] highwayLabels = {"US", "I-", "NY", "SR", "ST", "RT"};
         int[] subset = new int[0];
 
+        String matchedHighway = ""; // track which label worked
         for (String label : highwayLabels) {
             int[] candidate = g.getConnectedSubset(g.getSubsetByHighway(label, maxSubset));
             if (candidate.length >= 4) {
                 subset = candidate;
+                matchedHighway = label;
                 break;
             }
         }
 
-        // last resort: just use the first maxSubset vertices
         if (subset.length < 4) {
+            System.out.println("No highway label matched for " + tmgFile + " -- using first " + maxSubset + " vertices");
             subset = new int[Math.min(maxSubset, g.getVertexCount())];
             for (int i = 0; i < subset.length; i++) {
                 subset[i] = i;
             }
             subset = g.getConnectedSubset(subset);
+            matchedHighway = "";
         }
 
-        // run NN and 2-opt on full subset first
+        // if still not enough vertices, skip this file entirely
+        if (subset.length < 4) {
+            System.out.println("Skipping " + tmgFile + " -- not enough connected vertices");
+            return;
+        }
+
+        // ── Round 1: all three algorithms on small subset for full comparison ──────
         g.buildDistanceMatrix(subset);
         TSPSolver solver = new TSPSolver(g.getDistMatrix());
 
@@ -128,15 +149,14 @@ public class TSPExperiment {
         int[] nnRoute = solver.nearestNeighbor(0);
         long nnTime = System.currentTimeMillis() - t1;
 
-        long t2 = t1;
+        long t2 = System.currentTimeMillis();
         int[] twoOptRoute = solver.twoOpt(nnRoute.clone());
         long twoOptTime = System.currentTimeMillis() - t2;
 
-// write NN and 2-opt paths BEFORE rebuilding for Held-Karp
         printPath(nnRoute, subset, g, nnOut);
         printPath(twoOptRoute, subset, g, twoOptOut);
 
-// now rebuild for Held-Karp with trimmed subset
+        // Held-Karp on trimmed subset
         int[] hkSubset = subset;
         int[] hkRoute = null;
         long hkTime = -1;
@@ -144,7 +164,7 @@ public class TSPExperiment {
         if (subset.length > hkMax) {
             hkSubset = new int[hkMax];
             System.arraycopy(subset, 0, hkSubset, 0, hkMax);
-            g.buildDistanceMatrix(hkSubset); // rebuilds predMatrix for hkSubset
+            g.buildDistanceMatrix(hkSubset);
         }
 
         TSPSolver hkSolver = new TSPSolver(g.getDistMatrix());
@@ -156,16 +176,48 @@ public class TSPExperiment {
             printPath(hkRoute, hkSubset, g, hkOut);
         }
 
-        // write CSV
-        if (csvOut != null) {
-            PrintWriter pw = new PrintWriter(csvOut);
-            pw.println("file,subset_size,nn_distance,nn_time_ms,twoopt_distance,twoopt_time_ms,heldkarp_distance,heldkarp_time_ms");
-            pw.printf("%s,%d,%.3f,%d,%.3f,%d,%.3f,%d%n",
-                    tmgFile, subset.length,
-                    solver.routeLength(nnRoute), nnTime,
-                    solver.routeLength(twoOptRoute), twoOptTime,
-                    hkRoute != null ? solver.routeLength(hkRoute) : -1, hkTime);
-            pw.close();
+        // ── Round 2: NN and 2-opt on larger subsets for scaling analysis ──────────
+        int[] largeSizes = {50, 100, 200};
+
+        for (int size : largeSizes) {
+            int[] largeSubset = g.getConnectedSubset(g.getSubsetByHighway(matchedHighway, size));
+
+            // skip if not enough connected vertices for this size
+            if (largeSubset.length < 4) {
+                System.out.println("Skipping size " + size + " for " + tmgFile
+                        + " -- only " + largeSubset.length + " connected vertices found");
+                continue;
+            }
+
+            g.buildDistanceMatrix(largeSubset);
+            TSPSolver largeSolver = new TSPSolver(g.getDistMatrix());
+
+            if (g.getDistMatrix().length == 0) {
+                System.out.println("Skipping size " + size + " -- empty distance matrix");
+                continue;
+            }
+
+            long tNN = System.currentTimeMillis();
+            int[] largeNN = largeSolver.nearestNeighbor(0);
+            long largeNNTime = System.currentTimeMillis() - tNN;
+
+            long tTO = System.currentTimeMillis();
+            int[] largeTwoOpt = largeSolver.twoOpt(largeNN.clone());
+            long largeTwoOptTime = System.currentTimeMillis() - tTO;
+
+            // write paths
+            printPath(largeNN, largeSubset, g, nnOut.replace(".pth", "_" + size + ".pth"));
+            printPath(largeTwoOpt, largeSubset, g, twoOptOut.replace(".pth", "_" + size + ".pth"));
+
+            // append to CSV
+            if (csvOut != null) {
+                PrintWriter pw = new PrintWriter(new FileWriter(csvOut, true)); // append mode
+                pw.printf("%s,%d,%.3f,%d,%.3f,%d,-1,-1%n",
+                        tmgFile, largeSubset.length,
+                        largeSolver.routeLength(largeNN), largeNNTime,
+                        largeSolver.routeLength(largeTwoOpt), largeTwoOptTime);
+                pw.close();
+            }
         }
     }
 }
