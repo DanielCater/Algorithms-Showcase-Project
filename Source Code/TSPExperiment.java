@@ -161,15 +161,14 @@ public class TSPExperiment {
         int[] hkRoute = null;
         long hkTime = -1;
 
-        if (subset.length > hkMax) {
-            hkSubset = new int[hkMax];
-            System.arraycopy(subset, 0, hkSubset, 0, hkMax);
-            g.buildDistanceMatrix(hkSubset);
-        }
-
-        TSPSolver hkSolver = new TSPSolver(g.getDistMatrix());
+        // if (subset.length > hkMax) {
+        //     hkSubset = new int[hkMax];
+        //     System.arraycopy(subset, 0, hkSubset, 0, hkMax);
+        //     g.buildDistanceMatrix(hkSubset);
+        // }
+        solver = new TSPSolver(g.getDistMatrix());
         long t3 = System.currentTimeMillis();
-        hkRoute = hkSolver.heldKarp(0);
+        hkRoute = solver.heldKarp(0);
         hkTime = System.currentTimeMillis() - t3;
 
         if (hkRoute != null) {
