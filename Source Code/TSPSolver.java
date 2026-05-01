@@ -35,8 +35,6 @@ public class TSPSolver {
         return sb.toString();
     }
 
-    // TODO: Add methods to solve the TSP problem here, such as nearestNeighbor, 2-opt, and heldKarp.
-    // a route is just an array of vertex indices, e.g. [0, 4, 2, 7, 1, ...]
     /**
      * Nearest Neighbor heuristic for TSP. Starts at the given index and always
      * moves to the closest unvisited city.
@@ -73,6 +71,16 @@ public class TSPSolver {
         return route;
     }
 
+    /**
+     * 2-opt heuristic for TSP. Iteratively improves the route by swapping two
+     * edges if it results in a shorter route. Continues until no improvement
+     * can be made.
+     *
+     * @param route The initial route to be improved, represented as an array of
+     * vertex indices.
+     * @return an improved route after applying the 2-opt heuristic, represented
+     * as an array of vertex indices.
+     */
     public int[] twoOpt(int[] route) {
         int n = route.length;
         boolean improved = true;
