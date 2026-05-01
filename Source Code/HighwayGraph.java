@@ -221,6 +221,8 @@ public class HighwayGraph {
 
     private int[][] predMatrix; // predMatrix[i] = predecessor array from dijkstra run i
 
+    private int[] lastPred; // store the predecessor array from the last dijkstra run for use in getPath
+
     /**
      * Returns the distance matrix for the graph.
      *
@@ -341,10 +343,11 @@ public class HighwayGraph {
     public double[] dijkstra(int src) {
         double[] dist = new double[vertices.length];
         boolean[] visited = new boolean[vertices.length];
+        lastPred = new int[vertices.length]; // store pred from last dijkstra run
 
-        // initialize all distances to infinity
         for (int i = 0; i < dist.length; i++) {
             dist[i] = Double.MAX_VALUE;
+            lastPred[i] = -1;
         }
         dist[src] = 0.0;
 
@@ -354,75 +357,24 @@ public class HighwayGraph {
         while (!pq.isEmpty()) {
             Node curr = pq.poll();
             int u = curr.vertex;
-
             if (visited[u]) {
                 continue;
             }
             visited[u] = true;
 
-            // traverse adjacency list
             Edge e = vertices[u].head;
             while (e != null) {
                 int v = e.dest;
                 double newDist = dist[u] + e.length;
                 if (newDist < dist[v]) {
                     dist[v] = newDist;
+                    lastPred[v] = u;
                     pq.add(new Node(v, newDist));
                 }
                 e = e.next;
             }
         }
         return dist;
-    }
-
-    /**
-     * Run Dijkstra's from a single source vertex across the full graph, and
-     * return the predecessor array that allows us to reconstruct shortest
-     * paths. pred[i] gives the vertex number of the vertex immediately
-     * preceding vertex i on the shortest path from src to i, or -1 if there is
-     * no such path (or if i == src).
-     *
-     * @param src the index of the source vertex
-     * @return int[] where result[i] is the vertex number of the vertex
-     * immediately preceding vertex i on the shortest path from src to i, or -1
-     * if there
-     */
-    public int[] dijkstraPred(int src) {
-        double[] dist = new double[vertices.length];
-        boolean[] visited = new boolean[vertices.length];
-        int[] pred = new int[vertices.length]; // predecessor array
-
-        for (int i = 0; i < dist.length; i++) {
-            dist[i] = Double.MAX_VALUE;
-            pred[i] = -1; // no predecessor yet
-        }
-        dist[src] = 0.0;
-
-        PriorityQueue<Node> pq = new PriorityQueue<>();
-        pq.add(new Node(src, 0.0));
-
-        while (!pq.isEmpty()) {
-            Node curr = pq.poll();
-            int u = curr.vertex;
-
-            if (visited[u]) {
-                continue;
-            }
-            visited[u] = true;
-
-            Edge e = vertices[u].head;
-            while (e != null) {
-                int v = e.dest;
-                double newDist = dist[u] + e.length;
-                if (newDist < dist[v]) {
-                    dist[v] = newDist;
-                    pred[v] = u; // track how we got here
-                    pq.add(new Node(v, newDist));
-                }
-                e = e.next;
-            }
-        }
-        return pred;
     }
 
     /**
@@ -440,9 +392,7 @@ public class HighwayGraph {
 
         for (int i = 0; i < n; i++) {
             double[] fullDist = dijkstra(subset[i]);
-            int[] pred = dijkstraPred(subset[i]);
-            predMatrix[i] = pred;
-
+            predMatrix[i] = lastPred.clone(); // clone immediately after dijkstra
             for (int j = 0; j < n; j++) {
                 distMatrix[i][j] = fullDist[subset[j]];
             }
@@ -469,14 +419,42 @@ public class HighwayGraph {
      * including both endpoints
      */
     public List<Integer> getPath(int subsetFrom, int subsetTo, int[] subset) {
-        int[] pred = predMatrix[subsetFrom];  // row for this source
-        int target = subset[subsetTo];        // full graph index of destination
+        int[] pred = predMatrix[subsetFrom];
+        int target = subset[subsetTo];
+        int source = subset[subsetFrom];
+
+        // if same vertex, return just that vertex
+        if (source == target) {
+            List<Integer> trivial = new ArrayList<>();
+            trivial.add(source);
+            return trivial;
+        }
 
         List<Integer> path = new ArrayList<>();
+        boolean[] seen = new boolean[pred.length]; // detect cycles
         int current = target;
-        while (current != -1) {
+
+        while (current != -1 && current != source) {
+            if (seen[current]) {
+                System.out.println("WARNING: cycle detected in path between "
+                        + getVertexLabel(source) + " and " + getVertexLabel(target));
+                break;
+            }
+            seen[current] = true;
             path.add(current);
             current = pred[current];
+        }
+
+        if (current == source) {
+            path.add(source);
+        } else {
+            // pred chain never reached source -- vertices not connected
+            System.out.println("WARNING: short path between "
+                    + getVertexLabel(source) + " and " + getVertexLabel(target));
+            // return just the two endpoints so visualization at least plots the points
+            path.clear();
+            path.add(source);
+            path.add(target);
         }
 
         Collections.reverse(path);
